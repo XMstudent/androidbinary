@@ -1,4 +1,4 @@
-module github.com/shogo82148/androidbinary
+module github.com/XMstudent/androidbinary
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

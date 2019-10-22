@@ -4,15 +4,15 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"github.com/XMstudent/androidbinary"
+	"golang.org/x/image/webp"
 	"image"
+	_ "image/jpeg" // handle jpeg format
+	_ "image/png"  // handle png format
 	"io"
 	"os"
 	"strconv"
-
-	"github.com/shogo82148/androidbinary"
-
-	_ "image/jpeg" // handle jpeg format
-	_ "image/png"  // handle png format
+	"strings"
 )
 
 // Apk is an application package file for android.
@@ -72,6 +72,14 @@ func (k *Apk) Close() error {
 	return k.f.Close()
 }
 
+type errors struct {
+	errMsg string
+}
+
+func (e *errors) Error() string {
+	return e.errMsg
+}
+
 // Icon returns the icon image of the APK.
 func (k *Apk) Icon(resConfig *androidbinary.ResTableConfig) (image.Image, error) {
 	iconPath, err := k.manifest.App.Icon.WithResTableConfig(resConfig).String()
@@ -85,8 +93,26 @@ func (k *Apk) Icon(resConfig *androidbinary.ResTableConfig) (image.Image, error)
 	if err != nil {
 		return nil, err
 	}
-	m, _, err := image.Decode(bytes.NewReader(imgData))
-	return m, err
+	strArr := strings.Split(iconPath, ".")
+	var im image.Image
+	var decodeErr error
+	if strArr == nil {
+		errs := errors{"unknow error"}
+		return nil, &errs
+	}
+	suffix := strings.ToLower(strArr[len(strArr)])
+	if suffix == "jpg" || suffix == "png" || suffix == "jpeg" {
+		im, _, decodeErr = image.Decode(bytes.NewReader(imgData))
+	} else if suffix == "webp" {
+		im, decodeErr = webp.Decode(bytes.NewReader(imgData))
+	} else {
+		errs := errors{"unknow format"}
+		return nil, &errs
+	}
+	if decodeErr != nil {
+		return nil, decodeErr
+	}
+	return im, err
 }
 
 // Label returns the label of the APK.
